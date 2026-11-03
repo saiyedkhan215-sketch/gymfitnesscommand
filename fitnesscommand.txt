@@ -1,0 +1,78 @@
+Step 1: Open Your Repository in GitHub Codespaces
+Open your repository on GitHub.
+Click Code > Codespaces tab > Create codespace on main.
+Open the terminal inside Codespaces.
+
+Step 2: Ensure Java 17 and Android SDK Tools are Installed
+Run the following commands in the Codespace terminal:
+code
+Bash
+# Verify Java version (Java 17 or higher is required)
+java -version
+
+# If Java is not installed, install OpenJDK 17:
+sudo apt-get update && sudo apt-get install -y openjdk-17-jdk
+
+# Create an empty .env file if it does not exist (required by secrets plugin)
+touch .env
+If Android SDK is not present in your Codespace container, export the path or install command-line tools:
+code
+Bash
+export ANDROID_HOME=$HOME/android-sdk
+mkdir -p $ANDROID_HOME/cmdline-tools
+
+# Download Android command-line tools if not installed
+wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+rm cmdline-tools.zip
+
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+
+# Accept licenses and install platform packages
+yes | sdkmanager --licenses
+sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+
+Step 3: Generate Your Release Upload Keystore
+Generate your release signing keystore file in the root directory:
+code
+Bash
+keytool -genkeypair \
+-v \
+-keystore my-upload-key.jks \
+-keyalg RSA \
+-keysize 2048 \
+-validity 10000 \
+-alias upload
+You will be prompted to choose a password and enter basic developer details. Remember your password and alias (upload).
+Important: Keep my-upload-key.jks secure and backed up. Google Play requires this key for app updates.
+Step 4: Ensure the Gradle Wrapper Is Present
+If the gradlew executable is not in the project root, generate it:
+code
+Bash
+# If gradle is installed on system:
+gradle wrapper
+
+# Make gradlew executable:
+chmod +x gradlew
+
+
+Step 5: Build the Signed Release App Bundle (.aab)
+Pass your keystore passwords as environment variables to the build command:
+code
+Bash
+export KEYSTORE_PATH="$(pwd)/my-upload-key.jks"
+export STORE_PASSWORD="your password"
+export KEY_PASSWORD="your password"
+
+./gradlew :app:assembleRelease
+Step 6: Download the Generated .aab File
+Once the build finishes successfully, your .aab file will be located at:
+code
+Code
+app/build/outputs/bundle/release/app-release.aab
+
+keytool -list -v -keystore my-upload-key.jks -storepass password123
+
+./gradlew clean :app:assembleRelease :app:bundleRelease --no-build-cache
